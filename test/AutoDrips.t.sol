@@ -66,16 +66,20 @@ contract AutoDripsTest is Test {
         );
 
         mockToken.approve(address(autodrips), 100 ether);
+
+        vm.warp(0);
         autodrips.donate(impactList, erc20, 100 ether, _receivers(true, true, false), hints);
 
         uint32 numCycles = 123;
         vm.warp(block.timestamp + numCycles * drips.cycleSecs());
 
         assertEq(
-            drips.receiveStreams(addressDriver.calcAccountId(receiver1), erc20, numCycles), 1229
+            drips.receiveStreams(addressDriver.calcAccountId(receiver1), erc20, numCycles),
+            numCycles * drips.cycleSecs()
         );
         assertEq(
-            drips.receiveStreams(addressDriver.calcAccountId(receiver2), erc20, numCycles), 1229 * 2
+            drips.receiveStreams(addressDriver.calcAccountId(receiver2), erc20, numCycles),
+            2 * numCycles * drips.cycleSecs()
         );
         assertEq(drips.receiveStreams(addressDriver.calcAccountId(receiver3), erc20, numCycles), 0);
 
@@ -84,26 +88,18 @@ contract AutoDripsTest is Test {
         );
         vm.warp(block.timestamp + numCycles * drips.cycleSecs());
 
+        assertEq(drips.receiveStreams(addressDriver.calcAccountId(receiver1), erc20, numCycles), 0);
+        assertEq(drips.receiveStreams(addressDriver.calcAccountId(receiver2), erc20, numCycles), 0);
         assertEq(
-            drips.receiveStreams(addressDriver.calcAccountId(receiver1), erc20, numCycles),
-            1 // residual
-        );
-        assertEq(
-            drips.receiveStreams(addressDriver.calcAccountId(receiver2), erc20, numCycles),
-            2 // residual
-        );
-        assertEq(
-            drips.receiveStreams(addressDriver.calcAccountId(receiver3), erc20, numCycles), 1229 * 3
+            drips.receiveStreams(addressDriver.calcAccountId(receiver3), erc20, numCycles),
+            3 * numCycles * drips.cycleSecs()
         );
 
         autodrips.setReceivers(
             impactList, _receivers(false, false, true), _receivers(false, false, false), hints
         );
         vm.warp(block.timestamp + numCycles * drips.cycleSecs());
-        assertEq(
-            drips.receiveStreams(addressDriver.calcAccountId(receiver3), erc20, numCycles),
-            3 // residual
-        );
+        assertEq(drips.receiveStreams(addressDriver.calcAccountId(receiver3), erc20, numCycles), 0);
 
         drips.split(addressDriver.calcAccountId(receiver1), erc20, new SplitsReceiver[](0));
         drips.split(addressDriver.calcAccountId(receiver2), erc20, new SplitsReceiver[](0));
